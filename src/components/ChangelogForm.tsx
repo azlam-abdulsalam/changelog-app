@@ -1,3 +1,4 @@
+// ChangelogForm.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -24,6 +25,19 @@ export default function ChangelogForm() {
   const [tagsAndBranches, setTagsAndBranches] = useState<string[]>([]);
 
   useEffect(() => {
+    // Retrieve form values from localStorage
+    const storedFromCommit = localStorage.getItem('fromCommit');
+    const storedToCommit = localStorage.getItem('toCommit');
+    const storedDirectory = localStorage.getItem('directory');
+    const storedJiraHost = localStorage.getItem('jiraHost');
+    const storedJiraRegex = localStorage.getItem('jiraRegex');
+
+    if (storedFromCommit) setFromCommit(storedFromCommit);
+    if (storedToCommit) setToCommit(storedToCommit);
+    if (storedDirectory) setDirectory(storedDirectory);
+    if (storedJiraHost) setJiraHost(storedJiraHost);
+    if (storedJiraRegex) setJiraRegex(storedJiraRegex);
+
     const fetchTagsAndBranches = async () => {
       try {
         const response = await fetch('/api/getTags');
@@ -71,6 +85,34 @@ export default function ChangelogForm() {
     }
   };
 
+  const handleInputChange = (field: string, value: string) => {
+    // Update form field value in state and localStorage
+    switch (field) {
+      case 'fromCommit':
+        setFromCommit(value);
+        localStorage.setItem('fromCommit', value);
+        break;
+      case 'toCommit':
+        setToCommit(value);
+        localStorage.setItem('toCommit', value);
+        break;
+      case 'directory':
+        setDirectory(value);
+        localStorage.setItem('directory', value);
+        break;
+      case 'jiraHost':
+        setJiraHost(value);
+        localStorage.setItem('jiraHost', value);
+        break;
+      case 'jiraRegex':
+        setJiraRegex(value);
+        localStorage.setItem('jiraRegex', value);
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">Changelog Generator</h1>
@@ -81,14 +123,14 @@ export default function ChangelogForm() {
               type="text"
               id="fromCommit"
               value={fromCommit}
-              onChange={(e) => setFromCommit(e.target.value)}
+              onChange={(e) => handleInputChange('fromCommit', e.target.value)}
               placeholder="From Commit"
               className="w-full px-3 py-1 pr-8 bg-black border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
             <select
               value={fromCommit}
-              onChange={(e) => setFromCommit(e.target.value)}
+              onChange={(e) => handleInputChange('fromCommit', e.target.value)}
               className="absolute right-0 top-0 bottom-0 px-1 py-1 border-l bg-black rounded-r-md focus:outline-none"
             >
               <option value="">Select</option>
@@ -104,13 +146,13 @@ export default function ChangelogForm() {
               type="text"
               id="toCommit"
               value={toCommit}
-              onChange={(e) => setToCommit(e.target.value)}
+              onChange={(e) => handleInputChange('toCommit', e.target.value)}
               placeholder="To Commit (optional)"
               className="w-full px-3 py-1 pr-8 border bg-black rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <select
               value={toCommit}
-              onChange={(e) => setToCommit(e.target.value)}
+              onChange={(e) => handleInputChange('toCommit', e.target.value)}
               className="absolute right-0 top-0 bottom-0 px-1 py-1 border-l bg-black rounded-r-md focus:outline-none"
             >
               <option value="">Select</option>
@@ -125,7 +167,7 @@ export default function ChangelogForm() {
             type="text"
             id="directory"
             value={directory}
-            onChange={(e) => setDirectory(e.target.value)}
+            onChange={(e) => handleInputChange('directory', e.target.value)}
             placeholder="Local Directory"
             className="px-3 py-1 border rounded-md bg-black focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
@@ -134,7 +176,7 @@ export default function ChangelogForm() {
             type="text"
             id="jiraHost"
             value={jiraHost}
-            onChange={(e) => setJiraHost(e.target.value)}
+            onChange={(e) => handleInputChange('jiraHost', e.target.value)}
             placeholder="Jira Host"
             className="px-3 py-1 border rounded-md  bg-black focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
@@ -143,7 +185,7 @@ export default function ChangelogForm() {
             type="text"
             id="jiraRegex"
             value={jiraRegex}
-            onChange={(e) => setJiraRegex(e.target.value)}
+            onChange={(e) => handleInputChange('jiraRegex', e.target.value)}
             placeholder="Jira Ticket Regex"
             className="px-3 py-1 border rounded-md  bg-black focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
@@ -155,7 +197,7 @@ export default function ChangelogForm() {
       </form>
 
       {error && <p className="text-red-500 mb-4">{error}</p>}
-
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {commits.length > 0 && (
           <div>
@@ -207,5 +249,6 @@ export default function ChangelogForm() {
         )}
       </div>
     </div>
+    
   );
 }
