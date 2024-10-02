@@ -1,7 +1,8 @@
 // ChangelogForm.tsx
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+import ProgressBar from "./ProgressBar";
 
 interface Commit {
   hash: string;
@@ -14,23 +15,26 @@ interface TicketInfo {
 }
 
 export default function ChangelogForm() {
-  const [fromCommit, setFromCommit] = useState('');
-  const [toCommit, setToCommit] = useState('');
-  const [directory, setDirectory] = useState('');
-  const [jiraHost, setJiraHost] = useState('');
-  const [jiraRegex, setJiraRegex] = useState('(ABC-\\d+)|(XYZ-\\d+)');
+  const [fromCommit, setFromCommit] = useState("");
+  const [toCommit, setToCommit] = useState("");
+  const [directory, setDirectory] = useState("");
+  const [jiraHost, setJiraHost] = useState("");
+  const [jiraRegex, setJiraRegex] = useState("(ABC-\\d+)|(XYZ-\\d+)");
   const [commits, setCommits] = useState<Commit[]>([]);
   const [ticketInfo, setTicketInfo] = useState<TicketInfo[]>([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [tagsAndBranches, setTagsAndBranches] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
+
+
 
   useEffect(() => {
-    // Retrieve form values from localStorage
-    const storedFromCommit = localStorage.getItem('fromCommit');
-    const storedToCommit = localStorage.getItem('toCommit');
-    const storedDirectory = localStorage.getItem('directory');
-    const storedJiraHost = localStorage.getItem('jiraHost');
-    const storedJiraRegex = localStorage.getItem('jiraRegex');
+    const storedFromCommit = localStorage.getItem("fromCommit");
+    const storedToCommit = localStorage.getItem("toCommit");
+    const storedDirectory = localStorage.getItem("directory");
+    const storedJiraHost = localStorage.getItem("jiraHost");
+    const storedJiraRegex = localStorage.getItem("jiraRegex");
 
     if (storedFromCommit) setFromCommit(storedFromCommit);
     if (storedToCommit) setToCommit(storedToCommit);
@@ -38,40 +42,71 @@ export default function ChangelogForm() {
     if (storedJiraHost) setJiraHost(storedJiraHost);
     if (storedJiraRegex) setJiraRegex(storedJiraRegex);
 
-    const fetchTagsAndBranches = async () => {
-      try {
-        const response = await fetch('/api/getTags');
-        if (response.ok) {
-          const data = await response.json();
-          setTagsAndBranches(data.tagsAndBranches);
+    const fetchData = async () => {
+      if (storedDirectory) {
+        setIsLoading(true);
+        try {
+          await fetch('/api/gitFetch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ directory: storedDirectory }),
+          });
+          const response = await fetch('/api/getTags');
+          if (response.ok) {
+            const data = await response.json();
+            setTagsAndBranches(data.tagsAndBranches);
+          }
+        } catch (error) {
+          console.error('Error fetching data:', error);
         }
-      } catch (error) {
-        console.error('Error fetching tags and branches:', error);
+        setIsLoading(false);
+      } else {
+        setIsLoading(false);
       }
     };
 
-    fetchTagsAndBranches();
+    fetchData();
   }, []);
+
+  const handleGitFetch = async () => {
+    setIsFetching(true);
+    try {
+      await fetch('/api/gitFetch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ directory }),
+      });
+      const response = await fetch('/api/getTags');
+      if (response.ok) {
+        const data = await response.json();
+        setTagsAndBranches(data.tagsAndBranches);
+      }
+    } catch (error) {
+      console.error('Error performing git fetch:', error);
+    }
+    setIsFetching(false);
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     try {
       const [commitResponse, ticketResponse] = await Promise.all([
-        fetch('/api/getCommits', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        fetch("/api/getCommits", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ fromCommit, toCommit, directory }),
         }),
-        fetch('/api/getTickets', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        fetch("/api/getTickets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ fromCommit, toCommit, directory, jiraRegex }),
         }),
       ]);
 
       if (!commitResponse.ok || !ticketResponse.ok) {
-        throw new Error('Failed to fetch data');
+        throw new Error("Failed to fetch data");
       }
 
       const commitData = await commitResponse.json();
@@ -80,33 +115,33 @@ export default function ChangelogForm() {
       setCommits(commitData.commits);
       setTicketInfo(ticketData.ticketInfo);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      setError('Error fetching data. Please check your inputs and try again.');
+      console.error("Error fetching data:", error);
+      setError("Error fetching data. Please check your inputs and try again.");
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
     // Update form field value in state and localStorage
     switch (field) {
-      case 'fromCommit':
+      case "fromCommit":
         setFromCommit(value);
-        localStorage.setItem('fromCommit', value);
+        localStorage.setItem("fromCommit", value);
         break;
-      case 'toCommit':
+      case "toCommit":
         setToCommit(value);
-        localStorage.setItem('toCommit', value);
+        localStorage.setItem("toCommit", value);
         break;
-      case 'directory':
+      case "directory":
         setDirectory(value);
-        localStorage.setItem('directory', value);
+        localStorage.setItem("directory", value);
         break;
-      case 'jiraHost':
+      case "jiraHost":
         setJiraHost(value);
-        localStorage.setItem('jiraHost', value);
+        localStorage.setItem("jiraHost", value);
         break;
-      case 'jiraRegex':
+      case "jiraRegex":
         setJiraRegex(value);
-        localStorage.setItem('jiraRegex', value);
+        localStorage.setItem("jiraRegex", value);
         break;
       default:
         break;
@@ -114,7 +149,9 @@ export default function ChangelogForm() {
   };
 
   return (
+    <div className="container mx-auto p-4 bg-black text-white min-h-screen">
     <div className="container mx-auto p-4">
+      <ProgressBar isLoading={isLoading || isFetching} />
       <h1 className="text-3xl font-bold mb-6">Changelog Generator</h1>
       <form onSubmit={handleSubmit} className="mb-8">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -123,14 +160,14 @@ export default function ChangelogForm() {
               type="text"
               id="fromCommit"
               value={fromCommit}
-              onChange={(e) => handleInputChange('fromCommit', e.target.value)}
+              onChange={(e) => handleInputChange("fromCommit", e.target.value)}
               placeholder="From Commit"
               className="w-full px-3 py-1 pr-8 bg-black border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
             <select
               value={fromCommit}
-              onChange={(e) => handleInputChange('fromCommit', e.target.value)}
+              onChange={(e) => handleInputChange("fromCommit", e.target.value)}
               className="absolute right-0 top-0 bottom-0 px-1 py-1 border-l bg-black rounded-r-md focus:outline-none"
             >
               <option value="">Select</option>
@@ -146,13 +183,13 @@ export default function ChangelogForm() {
               type="text"
               id="toCommit"
               value={toCommit}
-              onChange={(e) => handleInputChange('toCommit', e.target.value)}
+              onChange={(e) => handleInputChange("toCommit", e.target.value)}
               placeholder="To Commit (optional)"
               className="w-full px-3 py-1 pr-8 border bg-black rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <select
               value={toCommit}
-              onChange={(e) => handleInputChange('toCommit', e.target.value)}
+              onChange={(e) => handleInputChange("toCommit", e.target.value)}
               className="absolute right-0 top-0 bottom-0 px-1 py-1 border-l bg-black rounded-r-md focus:outline-none"
             >
               <option value="">Select</option>
@@ -167,7 +204,7 @@ export default function ChangelogForm() {
             type="text"
             id="directory"
             value={directory}
-            onChange={(e) => handleInputChange('directory', e.target.value)}
+            onChange={(e) => handleInputChange("directory", e.target.value)}
             placeholder="Local Directory"
             className="px-3 py-1 border rounded-md bg-black focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
@@ -176,7 +213,7 @@ export default function ChangelogForm() {
             type="text"
             id="jiraHost"
             value={jiraHost}
-            onChange={(e) => handleInputChange('jiraHost', e.target.value)}
+            onChange={(e) => handleInputChange("jiraHost", e.target.value)}
             placeholder="Jira Host"
             className="px-3 py-1 border rounded-md  bg-black focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
@@ -185,19 +222,30 @@ export default function ChangelogForm() {
             type="text"
             id="jiraRegex"
             value={jiraRegex}
-            onChange={(e) => handleInputChange('jiraRegex', e.target.value)}
+            onChange={(e) => handleInputChange("jiraRegex", e.target.value)}
             placeholder="Jira Ticket Regex"
             className="px-3 py-1 border rounded-md  bg-black focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
         </div>
-        <button type="submit" className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-4 rounded">
+        <button
+          type="submit"
+          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-4 rounded"
+        >
           Generate Changelog
+        </button>
+        <button
+          type="button"
+          onClick={handleGitFetch}
+          disabled={isFetching}
+          className="mt-4 bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded disabled:opacity-50"
+        >
+          {isFetching ? "Fetching..." : "Git Fetch"}
         </button>
       </form>
 
       {error && <p className="text-red-500 mb-4">{error}</p>}
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {commits.length > 0 && (
           <div>
@@ -206,7 +254,9 @@ export default function ChangelogForm() {
               {commits.map((commit) => (
                 <li key={commit.hash} className="p-4 bg-gray-100 rounded-md">
                   <div className="font-semibold text-gray-800 mb-2">
-                    <span className="font-mono bg-gray-200 rounded-md px-2 py-1 mr-2">{commit.hash.substring(0, 7)}</span>
+                    <span className="font-mono bg-gray-200 rounded-md px-2 py-1 mr-2">
+                      {commit.hash.substring(0, 7)}
+                    </span>
                     {commit.message}
                   </div>
                 </li>
@@ -222,7 +272,9 @@ export default function ChangelogForm() {
               {ticketInfo.map((info) => (
                 <li key={info.hash} className="p-4 bg-gray-100 rounded-md">
                   <div className="font-semibold text-gray-800 mb-2">
-                    <span className="font-mono bg-gray-200 rounded-md px-2 py-1 mr-2">{info.hash.substring(0, 7)}</span>
+                    <span className="font-mono bg-gray-200 rounded-md px-2 py-1 mr-2">
+                      {info.hash.substring(0, 7)}
+                    </span>
                   </div>
                   {info.tickets.length > 0 ? (
                     <ul className="list-disc list-inside space-y-2">
@@ -249,6 +301,6 @@ export default function ChangelogForm() {
         )}
       </div>
     </div>
-    
+    </div>
   );
 }
